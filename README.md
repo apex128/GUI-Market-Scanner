@@ -1,1 +1,0 @@
-# GUI-Market-Scanner
