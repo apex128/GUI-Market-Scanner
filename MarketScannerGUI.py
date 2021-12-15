@@ -8,7 +8,8 @@ import plotly.graph_objs as go
 from numerize import numerize
 import tkinter as tk
 
-def displayChart(ticker, name, marketCap, folderName, timeframe, period):
+def displayChart(ticker, name, marketCap, folderName, timeframe, period, filterUpBars, filterDownBars, consec,
+                 aboveEMA, belowEMA):
     # Download the data
     data = yf.download(tickers=ticker, period=period, interval=timeframe, progress=False)
     
@@ -70,23 +71,40 @@ def displayChart(ticker, name, marketCap, folderName, timeframe, period):
     Low  =np.round(data['Low'] , 2)
     Close=np.round(data['Close'],2)
     
+    priceAboveEMA=False    
+    if aboveEMA:
+        # if price is above the 21 EMA
+        if (Close[-1] > data['EMA_21'][-1]):
+            priceAboveEMA=True
+    
+    priceBelowEMA=False
+    if belowEMA:
+        # if price is below the 21 EMA
+        if (Close[-1] < data['EMA_21'][-1]):
+            priceBelowEMA=True
+    
     # Find 3 green candles in a row
-    consec = 3
     isConsec = True
-    for i in range(-consec, 0):
-        if (Close[i] <= Open[i]):
-            isConsec = False
+    if filterUpBars:
+        for i in range(-consec, 0):
+            if (Close[i] <= Open[i]):
+                isConsec = False
+    
+    # Find 3 red candles in a row
+    if filterDownBars:
+        for i in range(-consec, 0):
+            if (Close[i] >= Open[i]):
+                isConsec = False
     
     # Write to a file if conditions are met
     wrote = False
-    #if (Close[-1] < data['EMA_21'][-1]):  # if price is below the 21 EMA
-    isConsec = True
     if (isConsec):
-        fig.write_image(folderName + "/" + ticker + ".jpeg", engine="kaleido")
-        wrote = True
+        if (aboveEMA==priceAboveEMA and belowEMA==priceBelowEMA):
+            fig.write_image(folderName + "/" + ticker + ".jpeg", engine="kaleido")
+            wrote = True
     return wrote
 
-def scan(minMarketCap, minVolume, timeframe, period):
+def scan(minMarketCap, minVolume, sector, filterUpBars, filterDownBars, consec, aboveEMA, belowEMA, timeframe, period):
     print("Scanning for stocks with min market cap", numerize.numerize(minMarketCap), ", minVolume", numerize.numerize(minVolume), ".")
     print("Timeframe:", timeframe, ", period:", period)
     #tickersList=['ENTA', 'MPLN', 'PKI', 'IBB']
@@ -104,11 +122,23 @@ def scan(minMarketCap, minVolume, timeframe, period):
     tickersFrame=tickersFrame.loc[tickersFrame['Market Cap'] > minMarketCap]
     # Filter for stocks with volume > specified minimum
     tickersFrame=tickersFrame.loc[tickersFrame['Volume'] > minVolume]
-    # Filter for stocks which are in the 'Health Care' sector
-    #tickersFrame=tickersFrame.loc[tickersFrame['Sector'] == 'Health Care']
-    print(len(tickersFrame), "stocks met initial criteria.")
+    # Filter for stocks which are in the specified sector
+    if (sector):
+        print("Sector:", sector)
+        tickersFrame=tickersFrame.loc[tickersFrame['Sector'] == sector]
+    print()
+    print(len(tickersFrame), "stocks met initial criteria:")
     print(', '.join(tickersFrame['Symbol'].values))
-    print("Scanning...")
+    print("\nScan parameters")
+    if (aboveEMA):
+        print("Price must be above 21 EMA.")
+    if (belowEMA):
+        print("Price must be below 21 EMA.")
+    if (filterUpBars):
+        print("Must have " + str(consec) + " green candles in a row.")
+    if (filterDownBars):
+        print("Must have " + str(consec) + " red candles in a row.")
+    print("\nScanning...")
     
     tickersList=tickersFrame['Symbol'].values
     
@@ -124,7 +154,8 @@ def scan(minMarketCap, minVolume, timeframe, period):
         try:
             name=tickersFrame[tickersFrame['Symbol'] == ticker]['Name'].values[0]
             marketCap=int(tickersFrame[tickersFrame['Symbol'] == ticker]['Market Cap'].values[0])
-            if (displayChart(ticker, name, numerize.numerize(marketCap), folderName, timeframe, period)):
+            if (displayChart(ticker, name, numerize.numerize(marketCap), folderName, timeframe, period, filterUpBars, filterDownBars, consec,
+                             aboveEMA, belowEMA)):
                 count += 1
         except:
             pass
@@ -133,7 +164,12 @@ def scan(minMarketCap, minVolume, timeframe, period):
     return count
 
 def runScanner():
-    numResults = scan(int(marketCapText.get("1.0", tk.END)), int(volumeText.get("1.0", tk.END)), '1d', '250d')
+    numResults = scan(int(marketCapText.get("1.0", tk.END)),
+                      int(volumeText.get("1.0", tk.END)),
+                      selectedSector.get().strip(),
+                      filterUpBars.get(), filterDownBars.get(), int(consecText.get("1.0", tk.END)),
+                      aboveEMA.get(), belowEMA.get(),
+                      '1d', '250d')
     print(numResults, "results found.\n\n")
 
 window = tk.Tk()
@@ -143,9 +179,45 @@ window.title("Market Scanner")
 marketCapText = tk.Text(master=window, height=1, width=15)
 marketCapText.insert(tk.END, "100000000000")
 marketCapText.pack(side="top")
+
 volumeText = tk.Text(master=window, height=1, width=15)
-volumeText.insert(tk.END, "50000000")
+volumeText.insert(tk.END, "5000000")
 volumeText.pack(side="top")
+
+filterUpBars = tk.IntVar()
+tk.Checkbutton(window, text="Consec up bars", variable=filterUpBars).pack()
+filterDownBars = tk.IntVar()
+tk.Checkbutton(window, text="Consec down bars", variable=filterDownBars).pack()
+
+consecText = tk.Text(master=window, height=1, width=15)
+consecText.insert(tk.END, "3")
+consecText.pack(side="top")
+
+aboveEMA = tk.IntVar()
+tk.Checkbutton(window, text="Above 21 EMA?", variable=aboveEMA).pack()
+belowEMA = tk.IntVar()
+tk.Checkbutton(window, text="Below 21 EMA?", variable=belowEMA).pack()
+
+SECTORS = [
+'',
+'Health Care',
+'Consumer Services',
+'Finance',
+'Miscellaneous',
+'Capital Goods',
+'Transportation',
+'Technology',
+'Consumer Durables',
+'Consumer Non-Durables',
+'Public Utilities',
+'Basic Industries',
+'Energy'
+]
+selectedSector = tk.StringVar(window)
+selectedSector.set(SECTORS[0]) # default value
+w = tk.OptionMenu(window, selectedSector, *SECTORS)
+w.pack()
+
 scanButton = tk.Button(text="Scan", command=runScanner)
 scanButton.pack(side="top")
 
