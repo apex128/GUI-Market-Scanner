@@ -129,7 +129,7 @@ def scan(minMarketCap, minVolume, sector, filterUpBars, filterDownBars, consec, 
     print()
     print(len(tickersFrame), "stocks met initial criteria:")
     print(', '.join(tickersFrame['Symbol'].values))
-    print("\nScan parameters")
+    print("\nScan parameters:")
     if (aboveEMA):
         print("Price must be above 21 EMA.")
     if (belowEMA):
@@ -169,12 +169,20 @@ def runScanner():
                       selectedSector.get().strip(),
                       filterUpBars.get(), filterDownBars.get(), int(consecText.get("1.0", tk.END)),
                       aboveEMA.get(), belowEMA.get(),
-                      '1d', '250d')
+                      timeframeText.get("1.0", tk.END).strip(), periodText.get("1.0", tk.END).strip())
     print(numResults, "results found.\n\n")
 
 window = tk.Tk()
 window.geometry("400x300")
 window.title("Market Scanner")
+
+timeframeText = tk.Text(master=window, height=1, width=15)
+timeframeText.insert(tk.END, "1d")
+timeframeText.pack(side="top")
+
+periodText = tk.Text(master=window, height=1, width=15)
+periodText.insert(tk.END, "250d")
+periodText.pack(side="top")
 
 marketCapText = tk.Text(master=window, height=1, width=15)
 marketCapText.insert(tk.END, "100000000000")
