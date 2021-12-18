@@ -173,21 +173,29 @@ def runScanner():
     print(numResults, "results found.\n\n")
 
 window = tk.Tk()
-window.geometry("400x300")
+width = 300
+height = 500
+window.geometry(str(width) + "x" + str(height))
+window.minsize(width, height)
+window.maxsize(width, height)
 window.title("Market Scanner")
 
+tk.Label(window, text = "Interval:").pack(side="top")
 timeframeText = tk.Text(master=window, height=1, width=15)
 timeframeText.insert(tk.END, "1d")
 timeframeText.pack(side="top")
 
+tk.Label(window, text = "Period:").pack(side="top")
 periodText = tk.Text(master=window, height=1, width=15)
 periodText.insert(tk.END, "250d")
 periodText.pack(side="top")
 
+tk.Label(window, text = "Min. Market Cap:").pack(side="top")
 marketCapText = tk.Text(master=window, height=1, width=15)
 marketCapText.insert(tk.END, "100000000000")
 marketCapText.pack(side="top")
 
+tk.Label(window, text = "Min. Volume:").pack(side="top")
 volumeText = tk.Text(master=window, height=1, width=15)
 volumeText.insert(tk.END, "5000000")
 volumeText.pack(side="top")
@@ -197,6 +205,7 @@ tk.Checkbutton(window, text="Consec up bars", variable=filterUpBars).pack()
 filterDownBars = tk.IntVar()
 tk.Checkbutton(window, text="Consec down bars", variable=filterDownBars).pack()
 
+tk.Label(window, text = "Number of consec bars (if selected):").pack(side="top")
 consecText = tk.Text(master=window, height=1, width=15)
 consecText.insert(tk.END, "3")
 consecText.pack(side="top")
@@ -221,6 +230,7 @@ SECTORS = [
 'Basic Industries',
 'Energy'
 ]
+tk.Label(window, text = "Sector:").pack(side="top")
 selectedSector = tk.StringVar(window)
 selectedSector.set(SECTORS[0]) # default value
 w = tk.OptionMenu(window, selectedSector, *SECTORS)
